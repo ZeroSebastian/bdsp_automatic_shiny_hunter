@@ -1,43 +1,41 @@
+# -*- coding: utf-8 -*-
 import time
 import telebot
 import logging
 import json
 from game_sequencer import GameSequencer
 
-token_str = 'TODO'
-user_id = 696969 # TODO
 settings_file = 'settings.json'
 
-bot = telebot.TeleBot(token=token_str)
 stop = False
-
-
-@bot.message_handler(commands=['stop'])
-def command_stop(message):
-    bot.reply_to(message, "Bot is stopping now")
-    global stop
-    stop = True
-
 
 if __name__ == '__main__':
     # set up logger
     logging.basicConfig(format='%(asctime)s %(message)s')
     logging.getLogger().setLevel(logging.INFO)
-    # create telegram bot
-    logging.info('initialize telegram bot')
-    # bot.get_updates(offset=-1)
-
-    game_sequencer = GameSequencer()
 
     # repeat until keyboard interrupt ctrl+c is given
     try:
-        cnt = 677
+        # load iteration from settings.json
+        logging.info('Loading settings')
+        token_str = str()
+        user_id = int()
+        cnt = 0
+        with open(settings_file) as json_file:
+            data = json.load(json_file)
+            cnt = data['iteration']
+            telegram_token_str = data['telegram_token']
+            telegram_user_id = data['telegram_user_id']
+            logging.info(f'starting with iteration {cnt}')
+
+        # create telegram bot
+        logging.info('initialize telegram bot')
+        bot = telebot.TeleBot(token=token_str)
+
+        game_sequencer = GameSequencer()
+
         while not stop:
             logging.info(f'iteration: {cnt}')
-
-            # if cnt can be divided by 100 re initialize the camera and controller -> there is some kind of bug
-            #if cnt % 100 == 0:
-            #    game_sequencer.re_init()
 
             # game_sequencer.enter_game()
             while not game_sequencer.trigger_battle():
@@ -60,7 +58,6 @@ if __name__ == '__main__':
 
             game_sequencer.return_to_homescreen_and_exit_game()
             cnt += 1
-            # bot.process_new_updates(bot.get_updates())
 
     except KeyboardInterrupt:
         logging.info('Program will be closed')
