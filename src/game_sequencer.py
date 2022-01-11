@@ -106,27 +106,17 @@ class GameSequencer:
         """
         returns to home screen and closes game
         """
-
+        logging.info('press HOME to leave game')
         homescreen_reached_checker = ImageCheckingSpecifier(370, 40, RGBSpecifier(42, 42, 42, 0), False)
-        while self.__image_manager.check_pixel_in_image(homescreen_reached_checker):
-            logging.info('wait until home screen is seen')
-            self.__nx.press_buttons(self.__controller_index, [nxbt.Buttons.HOME])
-            time.sleep(1.5)
-
-        logging.info('on homescreen')
+        self.__execute_command_until_and([nxbt.Buttons.HOME], homescreen_reached_checker, 1.5, 0)
 
         # close game
+        logging.info('press X to enter game close dialog')
         close_dialog_checker = ImageCheckingSpecifier(370, 40, RGBSpecifier(9, 22, 29, 0), False)
-        while self.__image_manager.check_pixel_in_image(close_dialog_checker):
-            logging.info('press X to enter game close dialog')
-            self.__nx.press_buttons(self.__controller_index, [nxbt.Buttons.X])
-            time.sleep(1.5)
-        logging.info('game close dialog was reached')
+        self.__execute_command_until_and([nxbt.Buttons.X], close_dialog_checker, 1.5, 0)
 
-        while self.__image_manager.check_pixel_in_image(homescreen_reached_checker):
-            logging.info('press A to close game')
-            self.__nx.press_buttons(self.__controller_index, [nxbt.Buttons.A])
-            time.sleep(1.5)
+        logging.info('press A to close game')
+        self.__execute_command_until_and([nxbt.Buttons.A], homescreen_reached_checker, 1.5, 0)
         logging.info('game was closed')
 
     def get_battle_img(self) -> str:

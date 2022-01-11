@@ -18,8 +18,8 @@ if __name__ == '__main__':
     try:
         # load iteration from settings.json
         logging.info('Loading settings')
-        token_str = str()
-        user_id = int()
+        telegram_token_str = str()
+        telegram_user_id = int()
         cnt = 0
         with open(settings_file) as json_file:
             data = json.load(json_file)
@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
         # create telegram bot
         logging.info('initialize telegram bot')
-        bot = telebot.TeleBot(token=token_str)
+        bot = telebot.TeleBot(token=telegram_token_str)
 
         game_sequencer = GameSequencer()
 
@@ -41,19 +41,19 @@ if __name__ == '__main__':
             while not game_sequencer.trigger_battle():
                 # error detected
                 logging.info('Game Error assumed')
-                bot.send_message(user_id, f'Game error assumed, starting over!')
+                bot.send_message(telegram_user_id, f'Game error assumed, starting over!')
 
             game_sequencer.wait_and_check_shiny_battle(cnt)
 
             # send with bot
             logging.info('sending image')
-            bot.send_photo(user_id, photo=game_sequencer.get_battle_img(), caption=f'Iteration: {cnt}',
+            bot.send_photo(telegram_user_id, photo=game_sequencer.get_battle_img(), caption=f'Iteration: {cnt}',
                            disable_notification=True)
 
             # check for shiny
             if game_sequencer.is_shiny():
                 logging.info('shiny found!')
-                bot.send_message(user_id, f'Shiny found!')
+                bot.send_message(telegram_user_id, f'Shiny found!')
                 time.sleep(604800)
 
             game_sequencer.return_to_homescreen_and_exit_game()
