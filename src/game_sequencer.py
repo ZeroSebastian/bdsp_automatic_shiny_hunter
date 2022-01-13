@@ -7,9 +7,15 @@ import copy
 from image_manager import ImageManager, RGBSpecifier, ImageCheckingSpecifier
 import logging
 from datetime import datetime, timedelta
+from enum import Enum
 
 
 class GameSequencer:
+
+    class ErrorCode(Enum):
+        SUCCESS = 0
+        GAME_FROZEN = 1
+        GAME_ERROR = 2
 
     def __init__(self):
         """
@@ -39,14 +45,17 @@ class GameSequencer:
     def trigger_battle(self):
         """
         presses button A until the pokemon is spoken to
-        :return: True if successful, False if a timeout occured
+        :return: ErrorCode
         """
         # trigger battle scene
         logging.info('spamming A until battle starts')
 
         # press 'A' until the msg box appears
         pokemon_spoken_to_text_box_checker = ImageCheckingSpecifier(240, 400, ImageManager.white_rgb, False)
-        self.__execute_command_until_and([nxbt.Buttons.A], pokemon_spoken_to_text_box_checker, 1, 0)
+        if not self.__execute_command_until_and([nxbt.Buttons.A], pokemon_spoken_to_text_box_checker, 1, 120):
+            # assume that the game had the error message
+            imwrite(f'./error_frozen_dbg.jpg', self.__image_manager.get_recent_image())
+            return GameSequencer.ErrorCode.GAME_ERROR
 
         logging.info('Clicked battle start')
         self.__game_loaded_img = copy.deepcopy(self.__image_manager.get_recent_image())
@@ -54,13 +63,13 @@ class GameSequencer:
         # wait until the screen goes all white
         logging.info('wait until screen is all white')
         screen_white_checker = ImageCheckingSpecifier(360, 240, ImageManager.white_rgb, False)
-        if not self.__execute_command_until_and([nxbt.Buttons.A], screen_white_checker, 2, 20):
+        if not self.__execute_command_until_and([nxbt.Buttons.A], screen_white_checker, 1, 20):
             # assume that the game had the error message
-            imwrite(f'./error_msg_dbg.jpg', self.__image_manager.get_recent_image())
-            return False
+            imwrite(f'./game_error_dbg.jpg', self.__image_manager.get_recent_image())
+            return GameSequencer.ErrorCode.GAME_ERROR
 
         self.__screen_white_img = copy.deepcopy(self.__image_manager.get_recent_image())
-        return True
+        return GameSequencer.ErrorCode.SUCCESS
 
     def wait_and_check_shiny_battle(self, iteration: int):
         """
@@ -80,7 +89,7 @@ class GameSequencer:
 
         # wait relative time
         timepoint_when_image = self.__image_manager.get_recent_image_time()
-        timepoint_check = (timepoint_when_image + timedelta(seconds=3.3))
+        timepoint_check = (timepoint_when_image + timedelta(seconds=3.1))
         time.sleep((timepoint_check - timepoint_when_image).seconds)
 
         # take screenshot
@@ -160,6 +169,7 @@ class GameSequencer:
                 time.sleep(5)
                 # just for linebreak at end
                 print('')
+                logging.warning('timeout reached')
                 return False
             print('.', end='')
             self.__nx.press_buttons(self.__controller_index, button_cmd)
