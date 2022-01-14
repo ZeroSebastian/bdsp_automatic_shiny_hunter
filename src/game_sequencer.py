@@ -55,7 +55,7 @@ class GameSequencer:
         if not self.__execute_command_until_and([nxbt.Buttons.A], pokemon_spoken_to_text_box_checker, 1, 120):
             # assume that the game had the error message
             imwrite(f'./error_frozen_dbg.jpg', self.__image_manager.get_recent_image())
-            return GameSequencer.ErrorCode.GAME_ERROR
+            return GameSequencer.ErrorCode.GAME_FROZEN
 
         logging.info('Clicked battle start')
         self.__game_loaded_img = copy.deepcopy(self.__image_manager.get_recent_image())
