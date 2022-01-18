@@ -11,7 +11,6 @@ from enum import Enum
 
 
 class GameSequencer:
-
     class ErrorCode(Enum):
         SUCCESS = 0
         GAME_FROZEN = 1
@@ -52,7 +51,7 @@ class GameSequencer:
 
         # press 'A' until the msg box appears
         pokemon_spoken_to_text_box_checker = ImageCheckingSpecifier(240, 400, ImageManager.white_rgb, False)
-        if not self.__execute_command_until_and([nxbt.Buttons.A], pokemon_spoken_to_text_box_checker, 1, 120):
+        if not self.__execute_command_until_and([nxbt.Buttons.A], [pokemon_spoken_to_text_box_checker], 1, 120):
             # assume that the game had the error message
             imwrite(f'./error_frozen_dbg.jpg', self.__image_manager.get_recent_image())
             return GameSequencer.ErrorCode.GAME_FROZEN
@@ -62,8 +61,15 @@ class GameSequencer:
 
         # wait until the screen goes all white
         logging.info('wait until screen is all white')
-        screen_white_checker = ImageCheckingSpecifier(360, 240, ImageManager.white_rgb, False)
-        if not self.__execute_command_until_and([nxbt.Buttons.A], screen_white_checker, 1, 20):
+        screen_white_checker_middle = ImageCheckingSpecifier(360, 240, ImageManager.white_rgb, False)
+        screen_white_checker_top_left = ImageCheckingSpecifier(50, 50, ImageManager.white_rgb, False)
+        screen_white_checker_top_right = ImageCheckingSpecifier(670, 50, ImageManager.white_rgb, False)
+        screen_white_checker_bottom_left = ImageCheckingSpecifier(50, 430, ImageManager.white_rgb, False)
+        screen_white_checker_bottom_right = ImageCheckingSpecifier(670, 430, ImageManager.white_rgb, False)
+        if not self.__execute_command_until_and([nxbt.Buttons.A],
+                                                [screen_white_checker_middle, screen_white_checker_bottom_right,
+                                                 screen_white_checker_bottom_left, screen_white_checker_top_right,
+                                                 screen_white_checker_top_left], 1, 20):
             # assume that the game had the error message
             imwrite(f'./game_error_dbg.jpg', self.__image_manager.get_recent_image())
             return GameSequencer.ErrorCode.GAME_ERROR
@@ -80,7 +86,7 @@ class GameSequencer:
         logging.info('wait until pokemon appears')
         pokemon_appeared_checker = (ImageCheckingSpecifier(55, 400, ImageManager.white_rgb, False),
                                     ImageCheckingSpecifier(10, 400, RGBSpecifier(255, 255, 255, 10), True))
-        while self.__image_manager.check_pixel_in_image(pokemon_appeared_checker[0]) or\
+        while self.__image_manager.check_pixel_in_image(pokemon_appeared_checker[0]) or \
                 self.__image_manager.check_pixel_in_recent_image(pokemon_appeared_checker[1]):
             pass
 
@@ -95,7 +101,8 @@ class GameSequencer:
         # take screenshot
         logging.info('taking image')
         img = self.__image_manager.take_screenshot()
-        imwrite(f'./encounters/encounter_{iteration}.jpg', img)
+        #imwrite(f'./encounters/shiny_check/encounter_{iteration}.jpg', img)
+        #imwrite(f'./encounters/appeared/encounter_{iteration}.jpg', self.__appeared_image)
         # check for shiny
         battle_box_checker = ImageCheckingSpecifier(370, 440, ImageManager.white_rgb, False)
         rgb = img[440, 370]
@@ -109,6 +116,7 @@ class GameSequencer:
             imwrite(f'./game_loaded_dbg.jpg', self.__game_loaded_img)
             imwrite(f'./screen_white_dbg_dbg.jpg', self.__screen_white_img)
             imwrite(f'./appeared_dbg.jpg', self.__appeared_image)
+            time.sleep(5)
             self.__nx.press_buttons(self.__controller_index, [nxbt.Buttons.CAPTURE], down=2.0)
 
     def return_to_homescreen_and_exit_game(self):
@@ -117,15 +125,15 @@ class GameSequencer:
         """
         logging.info('press HOME to leave game')
         homescreen_reached_checker = ImageCheckingSpecifier(370, 40, RGBSpecifier(42, 42, 42, 0), False)
-        self.__execute_command_until_and([nxbt.Buttons.HOME], homescreen_reached_checker, 1.5, 0)
+        self.__execute_command_until_and([nxbt.Buttons.HOME], [homescreen_reached_checker], 1.5, 0)
 
         # close game
         logging.info('press X to enter game close dialog')
         close_dialog_checker = ImageCheckingSpecifier(370, 40, RGBSpecifier(9, 22, 29, 0), False)
-        self.__execute_command_until_and([nxbt.Buttons.X], close_dialog_checker, 1.5, 0)
+        self.__execute_command_until_and([nxbt.Buttons.X], [close_dialog_checker], 1.5, 0)
 
         logging.info('press A to close game')
-        self.__execute_command_until_and([nxbt.Buttons.A], homescreen_reached_checker, 1.5, 0)
+        self.__execute_command_until_and([nxbt.Buttons.A], [homescreen_reached_checker], 1.5, 0)
         logging.info('game was closed')
 
     def get_battle_img(self) -> str:
@@ -150,7 +158,7 @@ class GameSequencer:
         self.__nx.remove_controller(self.__controller_index)
         logging.info('connection closed')
 
-    def __execute_command_until_and(self, button_cmd, check_condition: ImageCheckingSpecifier, retry_delay,
+    def __execute_command_until_and(self, button_cmd, check_condition: list, retry_delay,
                                     timeout_sec: int):
         """
         execute a command until the specified condition is met or a timeout occured
@@ -161,19 +169,16 @@ class GameSequencer:
         :return: True if condition was met, False if timeout occured
         """
         start = datetime.utcnow()
-        while self.__image_manager.check_pixel_in_image(check_condition):
+        self.__image_manager.take_screenshot()
+        while any(self.__image_manager.check_pixel_in_image(condition) for condition in check_condition):
             # Check for timeout
             if (timeout_sec != 0) and ((datetime.utcnow() - start).seconds >= timeout_sec):
                 # make screen record when a timeout happens
                 self.__nx.press_buttons(self.__controller_index, [nxbt.Buttons.CAPTURE], down=2.0)
                 time.sleep(5)
                 # just for linebreak at end
-                print('')
                 logging.warning('timeout reached')
                 return False
-            print('.', end='')
             self.__nx.press_buttons(self.__controller_index, button_cmd)
             time.sleep(retry_delay)
-        # just for linebreak at end
-        print('')
         return True

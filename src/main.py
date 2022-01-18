@@ -9,8 +9,8 @@ from shiny_hunter import ShinyHunter
 # define parser
 parser = argparse.ArgumentParser(description='Shiny hunting bot for Pokemon BDSP.')
 parser.add_argument('command', default=False, choices=[
-                        'hunt_standard_overworld', 'hunt_starter'
-                    ],
+    'hunt_standard_overworld', 'hunt_starter'
+],
                     help="""Specifies the shiny hunting command to run:
                     hunt_standard_overworld - Hunts a standard overworld Pokemon e.g.
                     Giratina. Just save right before the Pokemon and quit the game 
@@ -22,7 +22,11 @@ settings_file = 'settings.json'
 
 if __name__ == '__main__':
     # set up logger
-    logging.basicConfig(format='%(asctime)s %(message)s')
+    logging.basicConfig(format='%(asctime)s [%(levelname)s] ([%(threadName)s]): %(message)s ',
+                        handlers=[
+                            logging.FileHandler("debug.log"),
+                            logging.StreamHandler()
+                        ])
     logging.getLogger().setLevel(logging.INFO)
     shiny_hunter = None
 
@@ -40,11 +44,7 @@ if __name__ == '__main__':
             telegram_user_id = data['telegram_user_id']
             logging.info(f'starting with iteration {cnt}')
 
-        # create telegram bot
-        logging.info('initialize telegram bot')
-        bot = telebot.TeleBot(token=telegram_token_str)
-
-        shiny_hunter = ShinyHunter(bot, telegram_user_id)
+        shiny_hunter = ShinyHunter(telegram_token_str, telegram_user_id)
         # hunt depending on command line input
         if args.command == 'hunt_standard_overworld':
             shiny_hunter.hunt_standard_overworld_pokemon(cnt)
